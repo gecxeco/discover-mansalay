@@ -1,0 +1,21 @@
+{
+  "name": "multi-server-app",
+  "homepage": "http://discovermansalay.com",
+  "private": true,
+  "scripts": {
+    "start": "concurrently \"npm run frontend\" \"npm run cms\" \"npm run admin\" \"npm run user\" \"npm run map\" \"npm run destination\" \"npm run searchFiltering\"",
+    "frontend": "cd frontend && npm start",
+    "cms": "cd backend/cms-service && npm start",
+    "admin": "cd backend/admin-service && npm start",
+    "user": "cd backend/user-service && npm start",
+    "map": "cd backend/map-service && npm start",
+    "destination": "cd backend/destination-service && npm start",
+    "searchFiltering": "cd backend/searchFiltering-service && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  },
+  "dependencies": {
+    "leaflet-routing-machine": "^3.2.12"
+  }
+}
