@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = 'http://localhost:3003/api/experiencecms';
+// ✅ Use .env variable for API and image uploads
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/experiencecms`;
+const UPLOADS_BASE = `${import.meta.env.VITE_API_BASE_URL}/uploads`;
 
 const ExperienceCMS = () => {
   const [cards, setCards] = useState([]);
@@ -10,6 +12,7 @@ const ExperienceCMS = () => {
   const [form, setForm] = useState({ title: '', image: null, link: '' });
   const [showForm, setShowForm] = useState(false);
 
+  // ✅ Fetch experience cards
   const fetchData = async () => {
     try {
       const res = await fetch(API_URL);
@@ -25,21 +28,24 @@ const ExperienceCMS = () => {
     fetchData();
   }, []);
 
-  const handleChange = e => {
+  // ✅ Handle input changes
+  const handleChange = (e) => {
     const { name, value, files } = e.target;
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       [name]: name === 'image' ? files[0] : value,
     }));
   };
 
-  const handleEdit = card => {
+  // ✅ Edit existing card
+  const handleEdit = (card) => {
     setEditingId(card.id);
     setForm({ title: card.title, image: null, link: card.link || '' });
     setShowForm(true);
   };
 
-  const handleDelete = async id => {
+  // ✅ Delete card
+  const handleDelete = async (id) => {
     const confirmDelete = window.confirm('Are you sure you want to delete this card?');
     if (!confirmDelete) return;
 
@@ -58,7 +64,8 @@ const ExperienceCMS = () => {
     }
   };
 
-  const handleSubmit = async e => {
+  // ✅ Submit add/edit form
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.title.trim()) {
@@ -128,7 +135,7 @@ const ExperienceCMS = () => {
           return card ? (
             <div key={card.id} className="experiencecms-card">
               <img
-                src={`http://localhost:3003/uploads/${card.image_path}`}
+                src={`${UPLOADS_BASE}/${card.image_path}`}
                 alt={card.title}
                 className="experiencecms-image"
               />
@@ -144,16 +151,10 @@ const ExperienceCMS = () => {
                 </a>
               )}
               <div className="experiencecms-card-actions">
-                <button
-                  className="experiencecms-edit-btn"
-                  onClick={() => handleEdit(card)}
-                >
+                <button className="experiencecms-edit-btn" onClick={() => handleEdit(card)}>
                   Edit
                 </button>
-                <button
-                  className="experiencecms-delete-btn"
-                  onClick={() => handleDelete(card.id)}
-                >
+                <button className="experiencecms-delete-btn" onClick={() => handleDelete(card.id)}>
                   Delete
                 </button>
               </div>

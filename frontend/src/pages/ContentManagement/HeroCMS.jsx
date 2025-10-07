@@ -2,8 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = 'http://localhost:3003/api/hero';
-const UPLOADS_BASE = 'http://localhost:3003/';
+// ✅ Use environment variable for backend URL
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/hero`;
+
+// ✅ Base path for uploaded images
+const UPLOADS_BASE = `${import.meta.env.VITE_API_BASE_URL}/uploads`;
+
 
 const HeroCMS = () => {
   const [title, setTitle] = useState('');

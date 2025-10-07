@@ -2,19 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// ✅ Environment variables
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003';
+const API_URL = `${API_BASE_URL}/api/navbar`;
+const UPLOADS_BASE = `${API_BASE_URL}/uploads/`;
+
 const NavbarCMS = () => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:3003/api/navbar')
-      .then(res => res.json())
-      .then(data => {
+    fetch(API_URL)
+      .then((res) => res.json())
+      .then((data) => {
         if (data.logo) {
-          setPreview(`http://localhost:3003/uploads/${data.logo}`);
+          setPreview(`${UPLOADS_BASE}${data.logo}`);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('Error fetching logo:', err);
         toast.error('Error loading current logo');
       });
@@ -39,7 +44,7 @@ const NavbarCMS = () => {
     formData.append('logo', file);
 
     try {
-      const res = await fetch('http://localhost:3003/api/navbar/logo', {
+      const res = await fetch(`${API_URL}/logo`, {
         method: 'POST',
         body: formData,
       });
@@ -48,7 +53,7 @@ const NavbarCMS = () => {
 
       if (res.ok) {
         toast.success('Logo updated successfully!');
-        setPreview(`http://localhost:3003/uploads/${data.logo}`);
+        setPreview(`${UPLOADS_BASE}${data.logo}`);
         setFile(null);
       } else {
         toast.error(data.error || 'Failed to update logo');

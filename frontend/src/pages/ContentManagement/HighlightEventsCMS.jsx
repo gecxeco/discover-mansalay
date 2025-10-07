@@ -9,6 +9,11 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import 'react-toastify/dist/ReactToastify.css';
 
+// ✅ Environment variables
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003';
+const API_URL = `${API_BASE_URL}/api/highlightcms/highlight-events`;
+const UPLOADS_BASE = `${API_BASE_URL}/uploads/highlightevents/`;
+
 const HighlightEventsCMS = () => {
   const [events, setEvents] = useState([]);
   const [form, setForm] = useState({
@@ -27,9 +32,10 @@ const HighlightEventsCMS = () => {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [croppedImageFile, setCroppedImageFile] = useState(null);
 
+  // ✅ Fetch all highlight events
   const fetchEvents = async () => {
     try {
-      const res = await axios.get('http://localhost:3003/api/highlightcms/highlight-events');
+      const res = await axios.get(API_URL);
       setEvents(res.data);
     } catch (e) {
       console.error('Failed to fetch events', e);
@@ -41,6 +47,7 @@ const HighlightEventsCMS = () => {
     fetchEvents();
   }, []);
 
+  // ✅ Open Add/Edit Modal
   const openModal = (event = null) => {
     if (event) {
       setEditId(event.id);
@@ -56,7 +63,7 @@ const HighlightEventsCMS = () => {
         link: event.link,
         image: null,
       });
-      setImageSrc(`http://localhost:3003/uploads/highlightevents/${event.image_url}`);
+      setImageSrc(`${UPLOADS_BASE}${event.image_url}`);
       setCroppedImageFile(null);
     } else {
       setEditId(null);
@@ -142,6 +149,7 @@ const HighlightEventsCMS = () => {
     }
   }, [croppedAreaPixels, imageSrc, form.image]);
 
+  // ✅ Add or Update Event
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -162,10 +170,10 @@ const HighlightEventsCMS = () => {
 
     try {
       if (editId) {
-        await axios.put(`http://localhost:3003/api/highlightcms/highlight-events/${editId}`, formData);
+        await axios.put(`${API_URL}/${editId}`, formData);
         toast.success('Event updated successfully');
       } else {
-        await axios.post('http://localhost:3003/api/highlightcms/highlight-events', formData);
+        await axios.post(API_URL, formData);
         toast.success('Event added successfully');
       }
       closeModal();
@@ -176,12 +184,13 @@ const HighlightEventsCMS = () => {
     }
   };
 
+  // ✅ Delete Event
   const handleDelete = async (id) => {
     const confirmed = window.confirm('Are you sure you want to delete this event?');
     if (!confirmed) return;
 
     try {
-      await axios.delete(`http://localhost:3003/api/highlightcms/highlight-events/${id}`);
+      await axios.delete(`${API_URL}/${id}`);
       toast.success('Event deleted successfully');
       fetchEvents();
     } catch (err) {
@@ -201,7 +210,7 @@ const HighlightEventsCMS = () => {
         {events.map((event) => (
           <div key={event.id} className="highlightcms-event-card">
             <img
-              src={`http://localhost:3003/uploads/highlightevents/${event.image_url}`}
+              src={`${UPLOADS_BASE}${event.image_url}`}
               alt={event.title}
               className="highlightcms-event-image"
             />

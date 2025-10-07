@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
-const API_URL = 'http://localhost:3003/api/explorecms';
+// ✅ Use environment variable instead of localhost
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/explorecms`;
+
+// ✅ Keep your placeholder image (no change)
 const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/200x150?text=No+Image';
 
 export default function ExploreCMS() {
