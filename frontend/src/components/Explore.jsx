@@ -11,6 +11,7 @@ import 'swiper/css/pagination';
 import '../styles/components.css';
 
 export default function Explore() {
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
   const [destinations, setDestinations] = useState([]);
   const { wishlist, dispatch } = useContext(WishlistContext);
 
@@ -18,59 +19,45 @@ export default function Explore() {
   const username = user?.username;
 
   useEffect(() => {
-    fetch('http://localhost:3003/api/explorecms')
+    fetch(`${API_BASE}/api/cms/explore`)
       .then(res => res.json())
       .then(setDestinations)
       .catch(err => {
         console.error('Explore Fetch Error:', err);
         toast.error('Failed to load destinations.');
       });
-  }, []);
+  }, [API_BASE]);
 
   useEffect(() => {
-    if (username) {
-      fetch(`http://localhost:3001/api/wishlist/${username}`)
-        .then(res => res.json())
-        .then(data => {
-          dispatch({ type: 'SET_ITEMS', payload: data });
-        })
-        .catch(err => {
-          console.error('Wishlist Fetch Error:', err);
-          toast.error('Failed to load wishlist.');
-        });
-    }
-  }, [username, dispatch]);
+    if (!username) return;
+    fetch(`${API_BASE}/api/user/wishlist/${username}`)
+      .then(res => res.json())
+      .then(data => dispatch({ type: 'SET_ITEMS', payload: data }))
+      .catch(err => {
+        console.error('Wishlist Fetch Error:', err);
+        toast.error('Failed to load wishlist.');
+      });
+  }, [API_BASE, username, dispatch]);
 
   const isInWishlist = (itemId) => wishlist.some(item => item.item_id === itemId);
 
   const toggleWishlist = async (place) => {
-    if (!username) {
-      toast.info('Please log in to use wishlist.');
-      return;
-    }
-
+    if (!username) return toast.info('Please log in to use wishlist.');
     const item = {
       username,
       item_id: place.id,
       name: place.title,
       category: place.city,
-      image_path: place.image_path
+      image_path: place.image_path,
     };
 
-    if (isInWishlist(place.id)) {
-      try {
-        await fetch(`http://localhost:3001/api/wishlist/${username}/${place.id}`, {
-          method: 'DELETE',
-        });
+    try {
+      if (isInWishlist(place.id)) {
+        await fetch(`${API_BASE}/api/user/wishlist/${username}/${place.id}`, { method: 'DELETE' });
         dispatch({ type: 'REMOVE_ITEM', payload: place.id });
         toast.success('Removed from wishlist!');
-      } catch (err) {
-        console.error('Remove wishlist error:', err);
-        toast.error('Failed to remove from wishlist.');
-      }
-    } else {
-      try {
-        const res = await fetch('http://localhost:3001/api/wishlist', {
+      } else {
+        const res = await fetch(`${API_BASE}/api/user/wishlist`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(item),
@@ -82,25 +69,23 @@ export default function Explore() {
           const data = await res.json();
           toast.error(data.message || 'Failed to add to wishlist.');
         }
-      } catch (err) {
-        console.error('Add wishlist error:', err);
-        toast.error('Failed to add to wishlist.');
       }
+    } catch (err) {
+      console.error('Wishlist error:', err);
+      toast.error('Wishlist action failed.');
     }
   };
 
   return (
     <section className="carousel-section">
       <h2 className="title">Explore</h2>
-      <p className="subtitle">
-        Discover the diverse destinations across the Municipality of Mansalay.
-      </p>
+      <p className="subtitle">Discover the diverse destinations across the Municipality of Mansalay.</p>
 
       <Swiper
         modules={[Autoplay]}
         spaceBetween={20}
-        centeredSlides={true}
-        loop={true}
+        centeredSlides
+        loop
         autoplay={{ delay: 3000 }}
         slidesPerView={1.2}
         breakpoints={{
@@ -110,44 +95,43 @@ export default function Explore() {
         }}
         className="destination-swiper"
       >
-        {destinations.map((place) => (
-          <SwiperSlide key={place.id}>
-            <div className="card" style={{ position: 'relative' }}>
-              {/* Wishlist Icon */}
-              <div
-                className={`explore-wishlist-icon ${isInWishlist(place.id) ? 'active' : ''}`}
-                onClick={() => toggleWishlist(place)}
-                title={isInWishlist(place.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
-              >
-                <Heart size={20} />
-              </div>
+        {destinations.map((place) => {
+          const imageUrl = place.image_path
+            ? `${API_BASE}/uploads/top_destinations/${place.image_path}?t=${Date.now()}`
+            : 'https://via.placeholder.com/200x150?text=No+Image';
+          return (
+            <SwiperSlide key={place.id}>
+              <div className="card">
+                <div
+                  className={`explore-wishlist-icon ${isInWishlist(place.id) ? 'active' : ''}`}
+                  onClick={() => toggleWishlist(place)}
+                  title={isInWishlist(place.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                >
+                  <Heart size={20} />
+                </div>
 
-              <div className="card-image-wrapper">
-                <img
-                  src={`http://localhost:3003/uploads/top_destinations/${place.image_path}`}
-                  alt={place.title}
-                  className="card-image"
-                />
-                <div className="city-badge">
-                  <MapPin size={11} />
-                  {place.city}
+                <div className="card-image-wrapper">
+                  <img src={imageUrl} alt={place.title} className="card-image" />
+                  <div className="city-badge">
+                    <MapPin size={11} /> {place.city}
+                  </div>
+                </div>
+
+                <div className="card-info">
+                  <h3>{place.title}</h3>
+                  {place.email && <p>Email: {place.email}</p>}
+                  {place.contact && <p>Contact: {place.contact}</p>}
+                </div>
+
+                <div className="view-button-wrapper">
+                  <button className="view-button">
+                    View details <ArrowUpRight size={16} />
+                  </button>
                 </div>
               </div>
-
-              <div className="card-info">
-                <h3>{place.title}</h3>
-                {place.email && <p>Email: {place.email}</p>}
-                {place.contact && <p>Contact: {place.contact}</p>}
-              </div>
-
-              <div className="view-button-wrapper">
-                <button className="view-button">
-                  View details <ArrowUpRight size={16} />
-                </button>
-              </div>
-            </div>
-          </SwiperSlide>
-        ))}
+            </SwiperSlide>
+          );
+        })}
       </Swiper>
 
       <div className="view-all-wrapper">
