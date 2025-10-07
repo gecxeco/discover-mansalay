@@ -2,13 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// ✅ Use environment variable for backend URL
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-// ✅ Hero CMS endpoint
 const HERO_API = `${API_BASE}/api/cms/hero`;
-
-// ✅ Base path for uploaded media
 const UPLOADS_BASE = `${API_BASE}/uploads`;
 
 const HeroCMS = () => {
@@ -28,13 +23,12 @@ const HeroCMS = () => {
       setTitle(data.title || '');
       setSubtitle(data.subtitle || '');
       if (data.media_path) {
-  setPreview(`${UPLOADS_BASE}${data.media_path}?t=${Date.now()}`);
-  setMediaType(data.media_type);
-} else {
-  setPreview('');
-  setMediaType('');
-}
-
+        setPreview(`${UPLOADS_BASE}${data.media_path}?t=${Date.now()}`);
+        setMediaType(data.media_type);
+      } else {
+        setPreview('');
+        setMediaType('');
+      }
     } catch (err) {
       toast.error('Failed to load hero data.');
       console.error(err);
@@ -88,10 +82,11 @@ const HeroCMS = () => {
         body: formData,
       });
       const data = await res.json();
+
       if (res.ok) {
         toast.success('Hero content updated successfully!');
         setMediaFile(null);
-        fetchHero(); // refresh preview
+        fetchHero(); // ✅ Refresh CMS preview immediately
       } else {
         toast.error(data.message || 'Failed to update hero content.');
       }
@@ -105,7 +100,6 @@ const HeroCMS = () => {
   return (
     <div className="herocms-container">
       <h2>Background Management</h2>
-
       <form onSubmit={handleSubmit} className="herocms-form" encType="multipart/form-data">
         <label htmlFor="title">Title</label>
         <textarea
@@ -115,7 +109,6 @@ const HeroCMS = () => {
           rows={3}
           required
         />
-
         <label htmlFor="subtitle">Subtitle</label>
         <textarea
           id="subtitle"
@@ -124,7 +117,6 @@ const HeroCMS = () => {
           rows={3}
           required
         />
-
         {preview && (
           <div className="herocms-media-preview">
             <p>Current Background Preview:</p>
@@ -135,7 +127,6 @@ const HeroCMS = () => {
             )}
           </div>
         )}
-
         <input
           type="file"
           id="media"
@@ -147,7 +138,6 @@ const HeroCMS = () => {
           Choose Background Image or Video
         </label>
         {mediaFile && <p className="selected-file">Selected file: {mediaFile.name}</p>}
-
         <button type="submit" disabled={loading}>
           {loading ? 'Saving...' : 'Save Changes'}
         </button>

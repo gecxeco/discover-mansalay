@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import '../styles/components.css';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL; // ✅ backend URL from env
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const HERO_API = `${API_BASE}/api/cms/hero`;
 
 const Hero = () => {
@@ -23,12 +23,15 @@ const Hero = () => {
 
   useEffect(() => {
     fetchHero();
+
+    // ✅ Optional: poll every 10s to automatically update frontend after CMS edits
+    const interval = setInterval(fetchHero, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) return <div>Loading...</div>;
   if (!heroData) return <div>Failed to load hero content.</div>;
 
-  // ✅ Cache busting: add timestamp to force reload after updates
   const mediaUrl = heroData.media_path
     ? `${API_BASE}/${heroData.media_path}?t=${Date.now()}`
     : 'https://via.placeholder.com/1920x1080?text=No+Media';
@@ -43,7 +46,7 @@ const Hero = () => {
           muted
           playsInline
           preload="auto"
-          key={mediaUrl} // ✅ ensures React re-renders video when URL changes
+          key={mediaUrl}
         >
           <source src={mediaUrl} type="video/mp4" />
           Your browser does not support the video tag.
