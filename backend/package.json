@@ -1,13 +1,14 @@
 {
-  "devDependencies": {
-    "concurrently": "^9.1.2"
+  "name": "discover-mansalay-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "init": "^0.1.2",
-    "multer": "^2.0.1",
     "mysql2": "^3.14.1"
   }
 }
