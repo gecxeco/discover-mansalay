@@ -1,90 +1,68 @@
 // backend/config/db.js
 const mysql = require('mysql2/promise');
 
-// Try to load dotenv if present (local dev). If not present, continue silently.
+// Load dotenv only for local development
 try {
-  // only load in non-production or when dotenv is installed
   if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
   }
 } catch (e) {
-  // dotenv not installed or failed — ignore (production environments shouldn't need it)
+  // Ignore if dotenv is missing in production
 }
 
-const DB_NAME = process.env.MYSQLDATABASE || process.env.DB_NAME || 'discovermansalay';
-
-const DB_CONFIG = {
-  host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
-  user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
-  password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '123456789',
-  port: process.env.MYSQLPORT ? Number(process.env.MYSQLPORT) : (process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306),
-};
-
+// --------------------------------------------
+// 🧠 Auto-detect if Railway's DATABASE_URL is used
+// --------------------------------------------
 let pool = null;
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-async function tryConnectWithRetries(retries = 6, delay = 2000) {
-  let attempt = 0;
-  while (attempt < retries) {
-    try {
-      const conn = await mysql.createConnection({
-        host: DB_CONFIG.host,
-        user: DB_CONFIG.user,
-        password: DB_CONFIG.password,
-        port: DB_CONFIG.port,
-      });
-      await conn.ping();
-      await conn.end();
-      return true;
-    } catch (err) {
-      attempt++;
-      console.warn(`DB connection attempt ${attempt} failed: ${err.message}`);
-      if (attempt < retries) await wait(delay);
-      else throw err;
-    }
-  }
-}
-
 async function initialize() {
   if (pool) return pool;
 
-  // 1) Ensure DB server reachable (retries)
-  await tryConnectWithRetries(6, 2000);
-
-  // 2) Optionally create database (only when allowed)
-  const allowCreate = (process.env.ALLOW_DB_CREATE || 'false').toLowerCase() === 'true';
-  if (allowCreate) {
+  // If Railway provides DATABASE_URL, use that directly
+  if (process.env.DATABASE_URL) {
     try {
-      const connection = await mysql.createConnection({
-        host: DB_CONFIG.host,
-        user: DB_CONFIG.user,
-        password: DB_CONFIG.password,
-        port: DB_CONFIG.port,
-      });
-      await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``);
-      console.log(`✅ Database "${DB_NAME}" ensured (created if needed).`);
-      await connection.end();
-      // small wait to allow DB to be ready
-      await wait(500);
+      pool = mysql.createPool(process.env.DATABASE_URL + '?connectionLimit=10');
+      await pool.query('SELECT 1');
+      console.log('✅ Connected to Railway MySQL via DATABASE_URL');
+      return pool;
     } catch (err) {
-      console.warn('⚠️ CREATE DATABASE failed or not permitted:', err.message);
-      // continue — if the DB already exists or permission denied, we'll try to connect to DB below
+      console.error('❌ Failed to connect using DATABASE_URL:', err.message);
+      throw err;
     }
-  } else {
-    console.log('ℹ️ Skipping CREATE DATABASE (ALLOW_DB_CREATE not set to true).');
   }
 
-  // 3) Create pool that uses the database
-  pool = mysql.createPool({
-    ...DB_CONFIG,
+  // --------------------------------------------
+  // 🧩 Fallback for local development
+  // --------------------------------------------
+  const DB_NAME = process.env.MYSQLDATABASE || process.env.DB_NAME || 'discovermansalay';
+  const DB_CONFIG = {
+    host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+    user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
+    password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || '123456789',
+    port: process.env.MYSQLPORT
+      ? Number(process.env.MYSQLPORT)
+      : process.env.DB_PORT
+      ? Number(process.env.DB_PORT)
+      : 3306,
     database: DB_NAME,
     waitForConnections: true,
-    connectionLimit: process.env.DB_CONN_LIMIT ? Number(process.env.DB_CONN_LIMIT) : 10,
+    connectionLimit: 10,
     queueLimit: 0,
-  });
+  };
 
-  // 4) Create tables (for prototypes). Wrap each in try/catch to avoid crashing on permission issues.
+  // Try connecting locally
+  try {
+    pool = mysql.createPool(DB_CONFIG);
+    await pool.query('SELECT 1');
+    console.log(`✅ Connected to local MySQL: ${DB_CONFIG.host}/${DB_NAME}`);
+  } catch (err) {
+    console.error('❌ Failed to connect to local MySQL:', err.message);
+    throw err;
+  }
+
+  // Ensure tables (for prototypes)
   const tableQueries = [
     `CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -176,11 +154,11 @@ async function initialize() {
     try {
       await pool.query(q);
     } catch (err) {
-      console.warn('⚠️ Table creation failed (this may be due to permissions):', err.message);
+      console.warn('⚠️ Table creation failed:', err.message);
     }
   }
 
-  console.log(`✅ Tables ensured (if permissions allowed) in database "${DB_NAME}".`);
+  console.log(`✅ Tables ensured in database "${DB_NAME}".`);
   return pool;
 }
 
@@ -191,6 +169,4 @@ async function getPool() {
   return pool;
 }
 
-module.exports = {
-  getPool,
-};
+module.exports = { getPool };
