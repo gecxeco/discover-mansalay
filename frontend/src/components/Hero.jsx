@@ -1,35 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import '../styles/components.css';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL; // ✅ backend URL from env
+const HERO_API = `${API_BASE}/api/cms/hero`;
+
 const Hero = () => {
   const [heroData, setHeroData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchHero = async () => {
+    try {
+      const res = await fetch(HERO_API);
+      if (!res.ok) throw new Error('Failed to fetch hero content');
+      const data = await res.json();
+      setHeroData(data);
+    } catch (err) {
+      console.error('Fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch('http://localhost:3003/api/hero')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch hero content');
-        return res.json();
-      })
-      .then(data => {
-        setHeroData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Fetch error:', err);
-        setLoading(false);
-      });
+    fetchHero();
   }, []);
 
   if (loading) return <div>Loading...</div>;
   if (!heroData) return <div>Failed to load hero content.</div>;
 
-  // Cache busting to avoid browser caching issues
-const mediaUrl = heroData.media_path
-  ? `http://localhost:3003/${heroData.media_path}`
-  : 'https://via.placeholder.com/1920x1080?text=No+Media';
-
-
+  // ✅ Cache busting: add timestamp to force reload after updates
+  const mediaUrl = heroData.media_path
+    ? `${API_BASE}/${heroData.media_path}?t=${Date.now()}`
+    : 'https://via.placeholder.com/1920x1080?text=No+Media';
 
   return (
     <div className="hero-container">
@@ -41,7 +43,7 @@ const mediaUrl = heroData.media_path
           muted
           playsInline
           preload="auto"
-          key={mediaUrl}
+          key={mediaUrl} // ✅ ensures React re-renders video when URL changes
         >
           <source src={mediaUrl} type="video/mp4" />
           Your browser does not support the video tag.
