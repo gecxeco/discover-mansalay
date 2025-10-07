@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import '../styles/components.css';
+import '../../styles/components.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const API_URL = `${API_BASE}/api/cms/explore`;
