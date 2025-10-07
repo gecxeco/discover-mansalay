@@ -5,9 +5,8 @@ import 'react-toastify/dist/ReactToastify.css';
 // ✅ Use environment variable for backend URL
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/hero`;
 
-// ✅ Base path for uploaded images
-const UPLOADS_BASE = `${import.meta.env.VITE_API_BASE_URL}/uploads`;
-
+// ✅ Base path for uploaded images/videos
+const UPLOADS_BASE = `${import.meta.env.VITE_API_BASE_URL}/uploads/hero`;
 
 const HeroCMS = () => {
   const [title, setTitle] = useState('');
@@ -17,46 +16,44 @@ const HeroCMS = () => {
   const [mediaType, setMediaType] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetch(API_URL)
-      .then(res => res.json())
-      .then(data => {
-        setTitle(data.title);
-        setSubtitle(data.subtitle);
-        if (data.media_path) {
-          setPreview(`${UPLOADS_BASE}${data.media_path}`);
-          setMediaType(data.media_type);
-        }
-      })
-      .catch(() => {
-        toast.error('Failed to load hero data.');
-      });
-  }, []);
+  // Fetch hero data
+  const loadHero = async () => {
+    try {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+
+      setTitle(data.title || '');
+      setSubtitle(data.subtitle || '');
+      if (data.media_path) {
+        setPreview(`${UPLOADS_BASE}/${data.media_path}?t=${Date.now()}`);
+        setMediaType(data.media_type);
+      } else {
+        setPreview('');
+        setMediaType('');
+      }
+    } catch (err) {
+      toast.error('Failed to load hero data.');
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
+    loadHero();
+    // Cleanup preview URL on unmount
     return () => {
-      if (mediaFile) {
-        URL.revokeObjectURL(preview);
-      }
+      if (mediaFile) URL.revokeObjectURL(preview);
     };
-  }, [mediaFile, preview]);
+  }, []);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.type.startsWith('image/')) {
-      setMediaType('image');
-    } else if (file.type.startsWith('video/')) {
-      setMediaType('video');
-    } else {
-      toast.warn('Only image or video files are allowed.');
-      return;
-    }
+    if (file.type.startsWith('image/')) setMediaType('image');
+    else if (file.type.startsWith('video/')) setMediaType('video');
+    else return toast.warn('Only image or video files are allowed.');
 
-    if (preview && mediaFile) {
-      URL.revokeObjectURL(preview);
-    }
+    if (preview && mediaFile) URL.revokeObjectURL(preview);
 
     setMediaFile(file);
     setPreview(URL.createObjectURL(file));
@@ -66,8 +63,7 @@ const HeroCMS = () => {
     e.preventDefault();
 
     if (!title.trim() || !subtitle.trim()) {
-      toast.warn('Please provide both title and subtitle.');
-      return;
+      return toast.warn('Please provide both title and subtitle.');
     }
 
     const formData = new FormData();
@@ -85,32 +81,16 @@ const HeroCMS = () => {
 
       const data = await res.json();
 
-      if (res.ok) {
-        toast.success('Hero content updated successfully!');
-        setMediaFile(null);
+      if (!res.ok) throw new Error(data.message || 'Failed to update hero content.');
 
-        // Refresh current data and update preview
-        fetch(API_URL)
-          .then(res => res.json())
-          .then(data => {
-            setTitle(data.title);
-            setSubtitle(data.subtitle);
-            if (data.media_path) {
-              setPreview(`${UPLOADS_BASE}${data.media_path}?t=${Date.now()}`);
-              setMediaType(data.media_type);
-            } else {
-              setPreview('');
-              setMediaType('');
-            }
-          })
-          .catch(() => {
-            toast.error('Failed to reload updated content.');
-          });
-      } else {
-        toast.error(data.message || 'Failed to update hero content.');
-      }
+      toast.success('Hero content updated successfully!');
+      setMediaFile(null);
+
+      // Refresh hero data
+      loadHero();
     } catch (err) {
-      toast.error('Network error: ' + err.message);
+      toast.error('Error updating hero: ' + err.message);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -119,13 +99,12 @@ const HeroCMS = () => {
   return (
     <div className="herocms-container">
       <h2>Background Management</h2>
-
       <form onSubmit={handleSubmit} className="herocms-form" encType="multipart/form-data">
         <label htmlFor="title">Title</label>
         <textarea
           id="title"
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={(e) => setTitle(e.target.value)}
           rows={3}
           required
         />
@@ -134,7 +113,7 @@ const HeroCMS = () => {
         <textarea
           id="subtitle"
           value={subtitle}
-          onChange={e => setSubtitle(e.target.value)}
+          onChange={(e) => setSubtitle(e.target.value)}
           rows={3}
           required
         />
