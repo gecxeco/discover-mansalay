@@ -2,10 +2,12 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaHeart, FaUserCircle } from 'react-icons/fa';
 import WishlistContext from '../contexts/WishlistContext';
-import '../styles/components.css';
+import '../styles/components.css'; // ✅ Use alias for Vite
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 const Navbar = () => {
-  const { wishlist, dispatch, } = useContext(WishlistContext); // get dispatch too
+  const { wishlist, dispatch } = useContext(WishlistContext);
   const [logoUrl, setLogoUrl] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -15,20 +17,17 @@ const Navbar = () => {
   const navigate = useNavigate();
   const profileRef = useRef(null);
 
-  // Load logo on mount
-useEffect(() => {
-  fetch('/api/navbar')
-    .then(res => res.json())
-    .then(data => {
-      if (data.logo) {
-        setLogoUrl(`/uploads/${data.logo}`);  // add the /uploads path here
-      }
-    })
-    .catch(() => console.error('Failed to load logo'));
-}, []);
+  // Load logo
+  useEffect(() => {
+    fetch(`${API_BASE}/api/navbar`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.logo) setLogoUrl(`${API_BASE}/uploads/${data.logo}`);
+      })
+      .catch(() => console.error('Failed to load logo'));
+  }, []);
 
-
-  // Detect scroll for navbar style
+  // Scroll detection
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
@@ -37,23 +36,15 @@ useEffect(() => {
   }, []);
 
   // Scroll to top on route change
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
+  useEffect(() => window.scrollTo(0, 0), [location.pathname]);
 
-  // Load user info from localStorage on mount
+  // Load user
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        setUser(null);
-      }
-    }
+    if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
-  // Close profile dropdown when clicking outside
+  // Close profile dropdown outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
@@ -66,7 +57,6 @@ useEffect(() => {
 
   const wishlistCount = wishlist?.length || 0;
 
-  // Wishlist click: redirect to login if not logged in
   const handleWishlistClick = (e) => {
     if (!user) {
       e.preventDefault();
@@ -74,13 +64,11 @@ useEffect(() => {
     }
   };
 
-  // Logout handler
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('role');
     setUser(null);
     setProfileOpen(false);
-    // Clear wishlist on logout
     dispatch({ type: 'SET_ITEMS', payload: [] });
     navigate('/');
   };
@@ -89,11 +77,7 @@ useEffect(() => {
     <nav className={`navbar ${scrolled ? 'navbar-solid' : ''}`}>
       <div className="navbar-left">
         <Link to="/">
-          {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="logo" />
-          ) : (
-            <span>Loading logo...</span>
-          )}
+          {logoUrl ? <img src={logoUrl} alt="Logo" className="logo" /> : <span>Loading logo...</span>}
         </Link>
       </div>
 
@@ -123,23 +107,13 @@ useEffect(() => {
       </div>
 
       <div className="navbar-wishlist" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '4rem' }}>
-        {/* Wishlist icon */}
         <Link to="/wishlist" className="wishlist-icon" style={{ position: 'relative' }} onClick={handleWishlistClick}>
           <FaHeart size={25} title="Wishlist" />
-          {wishlistCount > 0 && (
-            <span className="wishlist-count">{wishlistCount}</span>
-          )}
+          {wishlistCount > 0 && <span className="wishlist-count">{wishlistCount}</span>}
         </Link>
 
-        {/* Welcome message */}
-       {user && (
-  <span style={{ color: scrolled ? '#033859' : '#fff', fontWeight: '600' }}>
-    Hi! {user.firstname}
-  </span>
-)}
+        {user && <span style={{ color: scrolled ? '#033859' : '#fff', fontWeight: '600' }}>Hi! {user.firstname}</span>}
 
-
-        {/* Profile icon + dropdown */}
         {user && (
           <div ref={profileRef} style={{ position: 'relative' }}>
             <FaUserCircle
@@ -150,15 +124,13 @@ useEffect(() => {
               style={{ cursor: 'pointer', color: scrolled ? '#033859' : '#fff' }}
             />
             {profileOpen && (
-            <div className="profile-dropdown">
-              <Link to="/profile" onClick={() => setProfileOpen(false)} className="dropdown-item">
-                My Profile
-              </Link>
-              <button onClick={handleLogout} className="dropdown-item">
-                Logout
-              </button>
-            </div>
-          )}
+              <div className="profile-dropdown">
+                <Link to="/profile" onClick={() => setProfileOpen(false)} className="dropdown-item">
+                  My Profile
+                </Link>
+                <button onClick={handleLogout} className="dropdown-item">Logout</button>
+              </div>
+            )}
           </div>
         )}
       </div>

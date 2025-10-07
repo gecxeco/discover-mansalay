@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// ✅ Environment variables
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003';
-const API_URL = `${API_BASE_URL}/api/navbar`;
-const UPLOADS_BASE = `${API_BASE_URL}/uploads/`;
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const API_URL = `${API_BASE}/api/navbar`;
+const UPLOADS_BASE = `${API_BASE}/uploads/`;
 
 const NavbarCMS = () => {
   const [file, setFile] = useState(null);
@@ -13,13 +13,11 @@ const NavbarCMS = () => {
 
   useEffect(() => {
     fetch(API_URL)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.logo) {
-          setPreview(`${UPLOADS_BASE}${data.logo}`);
-        }
+      .then(res => res.json())
+      .then(data => {
+        if (data.logo) setPreview(`${UPLOADS_BASE}${data.logo}`);
       })
-      .catch((err) => {
+      .catch(err => {
         console.error('Error fetching logo:', err);
         toast.error('Error loading current logo');
       });
@@ -35,10 +33,7 @@ const NavbarCMS = () => {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!file) {
-      toast.warn('Please select a file before uploading');
-      return;
-    }
+    if (!file) return toast.warn('Please select a file before uploading');
 
     const formData = new FormData();
     formData.append('logo', file);
@@ -48,9 +43,7 @@ const NavbarCMS = () => {
         method: 'POST',
         body: formData,
       });
-
       const data = await res.json();
-
       if (res.ok) {
         toast.success('Logo updated successfully!');
         setPreview(`${UPLOADS_BASE}${data.logo}`);
