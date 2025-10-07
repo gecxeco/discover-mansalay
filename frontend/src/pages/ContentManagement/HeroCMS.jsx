@@ -28,12 +28,13 @@ const HeroCMS = () => {
       setTitle(data.title || '');
       setSubtitle(data.subtitle || '');
       if (data.media_path) {
-        setPreview(`${UPLOADS_BASE}${data.media_path}`);
-        setMediaType(data.media_type);
-      } else {
-        setPreview('');
-        setMediaType('');
-      }
+  setPreview(`${UPLOADS_BASE}${data.media_path}?t=${Date.now()}`);
+  setMediaType(data.media_type);
+} else {
+  setPreview('');
+  setMediaType('');
+}
+
     } catch (err) {
       toast.error('Failed to load hero data.');
       console.error(err);
