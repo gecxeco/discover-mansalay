@@ -1,14 +1,12 @@
+// server.js (CMS Service)
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { getPool } = require('../config/db'); // ✅ adjust path based on your structure
+const dotenv = require('dotenv');
+const { getPool } = require('../config/db'); // adjust path if needed
 
-// Import routes
-const navbarRoutes = require('./routes/navbar');
-const heroRoutes = require('./routes/herocms');
-const exploreRoutes = require('./routes/explorecms');
-const highlightcmsRoutes = require('./routes/highlightcms');
-const experienceRoutes = require('./routes/experience');
+// Load environment variables
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 
@@ -20,14 +18,26 @@ app.use(express.urlencoded({ extended: true }));
 // 📂 Serve uploads folder statically
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// 🧭 API Routes
-app.use('/api/navbar', navbarRoutes);
-app.use('/api/hero', heroRoutes);
-app.use('/api/explorecms', exploreRoutes);
-app.use('/api/highlightcms', highlightcmsRoutes);
-app.use('/api/experiencecms', experienceRoutes);
+// 🧭 CMS Routes
+try {
+  const navbarRoutes = require('./routes/navbar');
+  const heroRoutes = require('./routes/herocms');
+  const exploreRoutes = require('./routes/explorecms');
+  const highlightRoutes = require('./routes/highlightcms');
+  const experienceRoutes = require('./routes/experience');
 
-// 🧠 Health check route (useful for Railway logs)
+  app.use('/api/cms/navbar', navbarRoutes);
+  app.use('/api/cms/hero', heroRoutes);
+  app.use('/api/cms/explore', exploreRoutes);
+  app.use('/api/cms/highlight', highlightRoutes);
+  app.use('/api/cms/experience', experienceRoutes);
+
+  console.log('✅ CMS routes loaded');
+} catch (err) {
+  console.error('❌ Failed to load CMS routes:', err.message);
+}
+
+// 🧠 Health check route
 app.get('/api/health', async (req, res) => {
   try {
     const pool = await getPool();
@@ -44,16 +54,16 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// 🚀 Start Server (only after DB is initialized)
+// 🚀 Start server after DB initialization
 (async function start() {
   try {
-    await getPool(); // initialize DB & ensure tables
+    await getPool(); // initialize DB
     const PORT = process.env.PORT || 3003;
     app.listen(PORT, () => {
       console.log(`🚀 CMS service running on port ${PORT}`);
     });
   } catch (err) {
     console.error('❌ Failed to initialize database:', err.message);
-    process.exit(1); // Railway will auto-restart if DB is temporarily unavailable
+    process.exit(1); // Railway will restart if DB temporarily fails
   }
 })();

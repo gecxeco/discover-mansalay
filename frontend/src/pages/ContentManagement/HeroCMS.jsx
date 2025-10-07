@@ -3,10 +3,13 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // ✅ Use environment variable for backend URL
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/hero`;
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-// ✅ Base path for uploaded images/videos
-const UPLOADS_BASE = `${import.meta.env.VITE_API_BASE_URL}/uploads/hero`;
+// ✅ Hero CMS endpoint
+const HERO_API = `${API_BASE}/api/cms/hero`;
+
+// ✅ Base path for uploaded media
+const UPLOADS_BASE = `${API_BASE}/uploads`;
 
 const HeroCMS = () => {
   const [title, setTitle] = useState('');
@@ -17,15 +20,15 @@ const HeroCMS = () => {
   const [loading, setLoading] = useState(false);
 
   // Fetch hero data
-  const loadHero = async () => {
+  const fetchHero = async () => {
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(HERO_API);
+      if (!res.ok) throw new Error('Failed to fetch hero data');
       const data = await res.json();
-
       setTitle(data.title || '');
       setSubtitle(data.subtitle || '');
       if (data.media_path) {
-        setPreview(`${UPLOADS_BASE}/${data.media_path}?t=${Date.now()}`);
+        setPreview(`${UPLOADS_BASE}${data.media_path}`);
         setMediaType(data.media_type);
       } else {
         setPreview('');
@@ -38,12 +41,15 @@ const HeroCMS = () => {
   };
 
   useEffect(() => {
-    loadHero();
-    // Cleanup preview URL on unmount
+    fetchHero();
+  }, []);
+
+  // Cleanup preview URL
+  useEffect(() => {
     return () => {
       if (mediaFile) URL.revokeObjectURL(preview);
     };
-  }, []);
+  }, [mediaFile, preview]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -51,7 +57,10 @@ const HeroCMS = () => {
 
     if (file.type.startsWith('image/')) setMediaType('image');
     else if (file.type.startsWith('video/')) setMediaType('video');
-    else return toast.warn('Only image or video files are allowed.');
+    else {
+      toast.warn('Only image or video files are allowed.');
+      return;
+    }
 
     if (preview && mediaFile) URL.revokeObjectURL(preview);
 
@@ -61,9 +70,9 @@ const HeroCMS = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!title.trim() || !subtitle.trim()) {
-      return toast.warn('Please provide both title and subtitle.');
+      toast.warn('Please provide both title and subtitle.');
+      return;
     }
 
     const formData = new FormData();
@@ -72,25 +81,21 @@ const HeroCMS = () => {
     if (mediaFile) formData.append('media', mediaFile);
 
     setLoading(true);
-
     try {
-      const res = await fetch(API_URL, {
+      const res = await fetch(HERO_API, {
         method: 'PATCH',
         body: formData,
       });
-
       const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || 'Failed to update hero content.');
-
-      toast.success('Hero content updated successfully!');
-      setMediaFile(null);
-
-      // Refresh hero data
-      loadHero();
+      if (res.ok) {
+        toast.success('Hero content updated successfully!');
+        setMediaFile(null);
+        fetchHero(); // refresh preview
+      } else {
+        toast.error(data.message || 'Failed to update hero content.');
+      }
     } catch (err) {
-      toast.error('Error updating hero: ' + err.message);
-      console.error(err);
+      toast.error('Network error: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -99,6 +104,7 @@ const HeroCMS = () => {
   return (
     <div className="herocms-container">
       <h2>Background Management</h2>
+
       <form onSubmit={handleSubmit} className="herocms-form" encType="multipart/form-data">
         <label htmlFor="title">Title</label>
         <textarea
@@ -122,17 +128,9 @@ const HeroCMS = () => {
           <div className="herocms-media-preview">
             <p>Current Background Preview:</p>
             {mediaType === 'video' ? (
-              <video
-                src={preview}
-                controls
-                style={{ maxWidth: '100%', borderRadius: '8px' }}
-              />
+              <video src={preview} controls style={{ maxWidth: '100%', borderRadius: '8px' }} />
             ) : (
-              <img
-                src={preview}
-                alt="Background preview"
-                style={{ maxWidth: '100%', borderRadius: '8px' }}
-              />
+              <img src={preview} alt="Background preview" style={{ maxWidth: '100%', borderRadius: '8px' }} />
             )}
           </div>
         )}
