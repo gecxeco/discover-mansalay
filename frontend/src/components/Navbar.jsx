@@ -19,7 +19,7 @@ const Navbar = () => {
 
   // Load logo
   useEffect(() => {
-    fetch(`${API_BASE}/api/navbar`)
+    fetch(`${API_BASE}/api/cms/navbar`)
       .then(res => res.json())
       .then(data => {
         if (data.logo) setLogoUrl(`${API_BASE}/uploads/${data.logo}`);

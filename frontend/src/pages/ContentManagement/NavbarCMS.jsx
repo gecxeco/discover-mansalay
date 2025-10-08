@@ -4,7 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-const API_URL = `${API_BASE}/api/navbar`;
+const API_URL = `${API_BASE}/api/cms/navbar`;
 const UPLOADS_BASE = `${API_BASE}/uploads/`;
 
 const NavbarCMS = () => {
